@@ -33,6 +33,9 @@
 POST /api/v1/farms                          创建农场/合作社
 POST /api/v1/plots                          地块登记
 POST /api/v1/batches                        创建种植批次
+POST /api/v1/batches/{id}/harvest           采收信息补录/修改（采收日期+实际产量，状态自动→已采收；已发码批次改日期需 confirm=true）
+GET  /api/v1/batches/{id}/harvest-changes   采收日期变更历史（含每次受影响码数量）
+GET  /api/v1/batches/{id}/harvest-changes/{changeId}/codes  某次变更影响的码列表（分页）
 POST /api/v1/batches/{id}/activities        农事记录（支持数组批量，client_uuid 幂等）
 POST /api/v1/batches/{id}/inspection        上传检测结果
 POST /api/v1/batches/{id}/codes             生成溯源码（返回数量与短码列表）
@@ -44,7 +47,8 @@ GET  /api/v1/trace/{code}/qrcode            返回二维码 PNG（带缓存头�
 ```sql
 farm(id, name, region_code, contact_ref, cert_no)
 plot(id, farm_id, name, area_mu, geojson /* 简化多边形 */, soil_type)
-crop_batch(id, plot_id, crop_id, sowing_date, harvest_date, expected_yield_kg, status /* growing|harvested|locked */)
+crop_batch(id, plot_id, crop_id, sowing_date, harvest_date, expected_yield_kg, actual_yield_kg, status /* growing|harvested|locked */)
+harvest_change(id, batch_id, old_harvest_date, new_harvest_date, affected_code_count, affected_max_seq, reason, changed_by, created_at)
 activity(id, batch_id, client_uuid UNIQUE, kind /* fertilize|pesticide|irrigation|weed */, happened_at,
          input_id, dose, dose_unit, operator, photos jsonb, geo, created_at)
 input_material(id, name, type, registration_no, safe_interval_days, active_ingredient)

@@ -57,13 +57,14 @@ func main() {
 	activityRepo := repository.NewActivityRepo(db)
 	inspectionRepo := repository.NewInspectionRepo(db)
 	codeRepo := repository.NewTraceCodeRepo(db)
+	harvestChangeRepo := repository.NewHarvestChangeRepo(db)
 	inputMaterialRepo := repository.NewInputMaterialRepo(db)
 	_ = inputMaterialRepo
 
 	// Services
 	farmSvc := service.NewFarmService(farmRepo)
 	plotSvc := service.NewPlotService(plotRepo)
-	batchSvc := service.NewBatchService(batchRepo, plotRepo, farmRepo)
+	batchSvc := service.NewBatchService(batchRepo, plotRepo, farmRepo, activityRepo, codeRepo, harvestChangeRepo)
 	activitySvc := service.NewActivityService(activityRepo, batchRepo)
 	inspectionSvc := service.NewInspectionService(inspectionRepo, batchRepo)
 	traceCodeSvc := service.NewTraceCodeService(codeRepo, batchRepo, inspectionRepo, activityRepo, plotRepo, farmRepo)

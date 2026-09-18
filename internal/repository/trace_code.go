@@ -71,3 +71,14 @@ func (r *TraceCodeRepo) CountByBatch(batchID int64) (int, error) {
 	}
 	return count, nil
 }
+
+// ListByBatchUpToSeq 分页列出批次下 seq <= maxSeq 的码（即某次采收日期变更时受影响的码）
+func (r *TraceCodeRepo) ListByBatchUpToSeq(batchID int64, maxSeq, limit, offset int) ([]model.TraceCode, error) {
+	codes := []model.TraceCode{}
+	query := `SELECT id, batch_id, code, seq, printed_at, first_scanned_at, first_scan_region, created_at
+	          FROM trace_code WHERE batch_id = $1 AND seq <= $2 ORDER BY seq ASC LIMIT $3 OFFSET $4`
+	if err := r.db.Select(&codes, query, batchID, maxSeq, limit, offset); err != nil {
+		return nil, err
+	}
+	return codes, nil
+}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"cc-052/internal/model"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -58,10 +59,20 @@ func (r *ActivityRepo) BatchCreate(activities []model.Activity) (int, error) {
 
 func (r *ActivityRepo) ListByBatch(batchID int64) ([]model.Activity, error) {
 	var activities []model.Activity
-	query := `SELECT id, batch_id, client_uuid, kind, happened_at, input_id, dose, dose_unit, operator, photos, geo, created_at 
+	query := `SELECT id, batch_id, client_uuid, kind, happened_at, input_id, dose, dose_unit, operator, photos, geo, created_at
 	          FROM activity WHERE batch_id = $1 ORDER BY happened_at ASC`
 	if err := r.db.Select(&activities, query, batchID); err != nil {
 		return nil, err
 	}
 	return activities, nil
+}
+
+// GetLastHappenedAt 返回该批次最后一条农事记录的发生时间；无记录时返回 nil, nil
+func (r *ActivityRepo) GetLastHappenedAt(batchID int64) (*time.Time, error) {
+	var t *time.Time
+	query := `SELECT MAX(happened_at) FROM activity WHERE batch_id = $1`
+	if err := r.db.Get(&t, query, batchID); err != nil {
+		return nil, err
+	}
+	return t, nil
 }

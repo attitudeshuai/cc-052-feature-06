@@ -24,7 +24,7 @@ func (r *BatchRepo) Create(b *model.CropBatch) error {
 
 func (r *BatchRepo) GetByID(id int64) (*model.CropBatch, error) {
 	var b model.CropBatch
-	query := `SELECT id, plot_id, crop_id, sowing_date, harvest_date, expected_yield_kg, status, created_at FROM crop_batch WHERE id = $1`
+	query := `SELECT id, plot_id, crop_id, sowing_date, harvest_date, expected_yield_kg, actual_yield_kg, status, created_at FROM crop_batch WHERE id = $1`
 	if err := r.db.Get(&b, query, id); err != nil {
 		return nil, err
 	}
@@ -37,10 +37,27 @@ func (r *BatchRepo) UpdateStatus(id int64, status model.BatchStatus) error {
 	return err
 }
 
-func (r *BatchRepo) SetHarvestDate(id int64, harvestDate time.Time) error {
-	query := `UPDATE crop_batch SET harvest_date = $1, status = 'harvested' WHERE id = $2`
-	_, err := r.db.Exec(query, harvestDate, id)
-	return err
+// RecordHarvest 在单事务内写入采收信息（采收日期、实际产量，状态置为 harvested）；
+// audit 非 nil 时同事务写入采收日期变更审计，保证批次与审计不脱节。
+func (r *BatchRepo) RecordHarvest(id int64, harvestDate time.Time, actualYieldKg float64, audit *model.HarvestChange) error {
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`UPDATE crop_batch SET harvest_date = $1, actual_yield_kg = $2, status = $3 WHERE id = $4`,
+		harvestDate, actualYieldKg, model.BatchStatusHarvested, id); err != nil {
+		return err
+	}
+
+	if audit != nil {
+		if err := insertHarvestChange(tx, audit); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (r *BatchRepo) GetLastPesticideDate(batchID int64) (*time.Time, error) {
