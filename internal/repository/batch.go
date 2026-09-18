@@ -2,6 +2,7 @@ package repository
 
 import (
 	"cc-052/internal/model"
+	"database/sql"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -24,7 +25,7 @@ func (r *BatchRepo) Create(b *model.CropBatch) error {
 
 func (r *BatchRepo) GetByID(id int64) (*model.CropBatch, error) {
 	var b model.CropBatch
-	query := `SELECT id, plot_id, crop_id, sowing_date, harvest_date, expected_yield_kg, status, created_at FROM crop_batch WHERE id = $1`
+	query := `SELECT id, plot_id, crop_id, sowing_date, harvest_date, expected_yield_kg, actual_yield_kg, status, created_at FROM crop_batch WHERE id = $1`
 	if err := r.db.Get(&b, query, id); err != nil {
 		return nil, err
 	}
@@ -37,10 +38,17 @@ func (r *BatchRepo) UpdateStatus(id int64, status model.BatchStatus) error {
 	return err
 }
 
-func (r *BatchRepo) SetHarvestDate(id int64, harvestDate time.Time) error {
-	query := `UPDATE crop_batch SET harvest_date = $1, status = 'harvested' WHERE id = $2`
-	_, err := r.db.Exec(query, harvestDate, id)
-	return err
+// GetLastActivityDate 返回该地块批次最后一条农事记录的发生时间，无农事记录时返回 nil。
+func (r *BatchRepo) GetLastActivityDate(batchID int64) (*time.Time, error) {
+	var t sql.NullTime
+	query := `SELECT MAX(happened_at) FROM activity WHERE batch_id = $1`
+	if err := r.db.Get(&t, query, batchID); err != nil {
+		return nil, err
+	}
+	if !t.Valid {
+		return nil, nil
+	}
+	return &t.Time, nil
 }
 
 func (r *BatchRepo) GetLastPesticideDate(batchID int64) (*time.Time, error) {

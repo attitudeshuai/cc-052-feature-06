@@ -71,3 +71,13 @@ func (r *TraceCodeRepo) CountByBatch(batchID int64) (int, error) {
 	}
 	return count, nil
 }
+
+// ListCodesByBatch 返回批次已发出的全部溯源码（按序号升序），用于采收日期变更的影响快照。
+func (r *TraceCodeRepo) ListCodesByBatch(batchID int64) ([]string, error) {
+	codes := []string{}
+	query := `SELECT code FROM trace_code WHERE batch_id = $1 ORDER BY seq ASC`
+	if err := r.db.Select(&codes, query, batchID); err != nil {
+		return nil, err
+	}
+	return codes, nil
+}

@@ -40,6 +40,8 @@ func Setup(
 		// Batches
 		v1.POST("/batches", batchH.Create)
 		v1.GET("/batches/:id", batchH.GetByID)
+		v1.POST("/batches/:id/harvest", batchH.RecordHarvest)
+		v1.GET("/batches/:id/harvest", batchH.ListHarvestRecords)
 
 		// Activities
 		v1.POST("/batches/:id/activities", activityH.Create)
